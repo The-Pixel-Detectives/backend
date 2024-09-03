@@ -7,7 +7,7 @@ class BaseEngine:
     def __init__(self):
         pass
 
-    def search(self, queries: List[str] | List[np.ndarray]) -> SearchResult:
+    def search(self, queries: List[str] | List[np.ndarray], top_k: int = 10) -> SearchResult:
         if len(queries) == 0:
             return SearchResult()
 

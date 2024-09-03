@@ -59,7 +59,7 @@ while True:
         video = point.payload['video']
         keyframe = point.payload['keyframe']
         score = point.score
-        img_path = os.path.join(img_dir, group, video, keyframe + ".jpg")
+        img_path = os.path.join(img_dir, group, "keyframe", video, keyframe + ".jpg")
         img = cv2.imread(img_path)
         img = cv2.resize(img, (vis_dim, vis_dim))
         text = f"{video} {keyframe}"

@@ -15,7 +15,7 @@ img2vec = JinaCLIP()
 
 group_list = os.listdir(input_dir)
 for group in group_list:
-    group_dir = os.path.join(input_dir, group)
+    group_dir = os.path.join(input_dir, group, "keyframes")
     if not os.path.isdir(group_dir):
         continue
 

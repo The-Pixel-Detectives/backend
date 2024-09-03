@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from qdrant_client import QdrantClient
 import numpy as np
 from qdrant_client.models import VectorParams, Distance, PointStruct
@@ -18,6 +19,7 @@ elif collection_name == JINA_INDEX:
 
 # input_dir = "./data/clip4clip_embeddings/"
 input_dir = "../data/jina_embeddings/"
+frame_map_dir = "../data/map-keyframes/"
 
 client = QdrantClient(host="localhost", port=6333)
 
@@ -39,18 +41,24 @@ for group in tqdm(group_list):
         if not os.path.isdir(video_dir):
             continue
 
+        frame_df = pd.read_csv(os.path.join(frame_map_dir, f"{video}.csv"))
+
         embedding_list = os.listdir(video_dir)
         embedding_list = [f for f in embedding_list if ".npy" in f]
         points = []
         for file in embedding_list:
             embedding = np.load(os.path.join(video_dir, file))
+            keyframe = int(file.replace(".npy", "").replace(".jpg", "").strip())
+            item = frame_df[frame_df["n"] == keyframe].iloc[0]
+            frame_idx = item["frame_idx"]
             points.append(PointStruct(
                 id=str(uuid4()),
                 vector=embedding.tolist(),
                 payload={
-                    "group": group,
+                    "group": group.split("_")[-1],
                     "video": video,
-                    "keyframe": file.replace(".npy", "").replace(".jpg", "").strip()
+                    "keyframe": keyframe,
+                    "frame_idx": frame_idx
                 }
             ))
 
