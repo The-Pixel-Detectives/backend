@@ -5,6 +5,12 @@ from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normal
 from transformers import CLIPVisionModelWithProjection, CLIPTokenizer, CLIPTextModelWithProjection, AutoModel
 from PIL import Image
 
+from sbir.options import Option
+from sbir.model.model import Model
+from sbir.utils.util import load_checkpoint
+from sbir.data_utils.utils import preprocess
+import torch.nn.functional as F
+
 
 class Clip4Clip:
     def __init__(self):
@@ -71,3 +77,38 @@ class JinaCLIP:
         # Normalize embeddings for retrieval
         outputs = outputs / np.linalg.norm(outputs)
         return outputs
+
+
+class SBIRModel:
+    def __init__(self):
+        args = Option().parse()
+        model = Model(args)
+        checkpoint = load_checkpoint(args.load)
+        cur = model.state_dict()
+        new = {k: v for k, v in checkpoint['model'].items() if k in cur.keys()}
+        cur.update(new)
+        model.load_state_dict(cur)
+        model.eval()
+        self.model = model.cpu()
+
+    def extract_embedding(self, image_path):
+        im = preprocess(image_path=image_path, img_type="im")
+        im = im.unsqueeze(0)
+        with torch.no_grad():
+            im, im_idxs = self.model(im, None, 'test', only_sa=True)
+        im = im.squeeze()
+        im = im[:1]
+        im = F.normalize(im)
+        im = im[0]
+        return im.cpu().detach().numpy()
+
+    def extract_sketch_embedding(self, image_path):
+        sk = preprocess(image_path=image_path, img_type="sk")
+        sk = sk.unsqueeze(0)
+        with torch.no_grad():
+            sk, sk_idxs = self.model(sk, None, 'test', only_sa=True)
+        sk = sk.squeeze()
+        sk = sk[:1]
+        sk = F.normalize(sk)
+        sk = sk[0]
+        return sk.cpu().detach().numpy()

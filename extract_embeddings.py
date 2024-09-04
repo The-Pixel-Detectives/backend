@@ -2,16 +2,18 @@ import os
 import cv2
 import numpy as np
 from tqdm import tqdm
-from model import Clip4Clip, JinaCLIP
+from model import Clip4Clip, JinaCLIP, SBIRModel
 
 
 # needed input dimensions for the CNN
 input_dir = "../data/keyframes"
-output_dir = "../data/jina_embeddings"
+# output_dir = "../data/jina_embeddings"
+output_dir = "../data/sbir_embeddings"
 os.makedirs(output_dir, exist_ok=True)
 
-img2vec = Clip4Clip()
-img2vec = JinaCLIP()
+# img2vec = Clip4Clip()
+# img2vec = JinaCLIP()
+img2vec = SBIRModel()
 
 group_list = os.listdir(input_dir)
 for group in group_list:
@@ -34,6 +36,6 @@ for group in group_list:
         print(group, video)
         for img_name in tqdm(img_list):
             filepath = os.path.join(video_dir, img_name)
-            image = cv2.imread(filepath)
-            x = img2vec.extract_embedding(image)
+            # image = cv2.imread(filepath)
+            x = img2vec.extract_embedding(filepath)
             np.save(os.path.join(out_path, img_name + ".npy"), x)

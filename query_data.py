@@ -4,14 +4,15 @@ from qdrant_client import QdrantClient
 import numpy as np
 import math
 import cv2
-from model import Clip4Clip, JinaCLIP
+from model import Clip4Clip, JinaCLIP, SBIRModel
 
 
 img_dir = "../data/keyframes"
 CLIP4CLIP_INDEX = "clip4clip_embeddings"
 JINA_INDEX = "jina_embeddings"
+SBIR_INDEX = "sbir_embeddings"
 
-collection_name = JINA_INDEX
+collection_name = SBIR_INDEX
 
 client = QdrantClient(host="localhost", port=6333)
 
@@ -19,6 +20,8 @@ if collection_name == CLIP4CLIP_INDEX:
     img2vec = Clip4Clip()
 elif collection_name == JINA_INDEX:
     img2vec = JinaCLIP()
+elif collection_name == SBIR_INDEX:
+    img2vec = SBIRModel()
 
 
 while True:
@@ -36,7 +39,9 @@ while True:
             break
 
         image = cv2.imread(img_path)
-        query_vector = img2vec.extract_embedding(image).tolist()
+        # query_vector = img2vec.extract_embedding(image).tolist()
+        query_vector = img2vec.extract_sketch_embedding(img_path).tolist()
+        print(query_vector)
 
     k = 11
     hits = client.search(
@@ -59,7 +64,8 @@ while True:
         video = point.payload['video']
         keyframe = point.payload['keyframe']
         score = point.score
-        img_path = os.path.join(img_dir, group, "keyframe", video, keyframe + ".jpg")
+        img_path = os.path.join(img_dir, f"Keyframes_{group}", "keyframes", video, f"{keyframe:03d}.jpg")
+        print(img_path)
         img = cv2.imread(img_path)
         img = cv2.resize(img, (vis_dim, vis_dim))
         text = f"{video} {keyframe}"
