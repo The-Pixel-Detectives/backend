@@ -62,6 +62,7 @@ for group in tqdm(group_list):
             keyframe = int(file.replace(".npy", "").replace(".jpg", "").strip())
             item = frame_df[frame_df["n"] == keyframe].iloc[0]
             frame_idx = item["frame_idx"]
+            fps = item["fps"]
             points.append(PointStruct(
                 id=str(uuid4()),
                 vector=embedding.tolist(),
@@ -69,7 +70,8 @@ for group in tqdm(group_list):
                     "group": group.split("_")[-1],
                     "video": video,
                     "keyframe": keyframe,
-                    "frame_idx": frame_idx
+                    "frame_idx": frame_idx,
+                    "fps": fps,
                 }
             ))
 
