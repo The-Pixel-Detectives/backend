@@ -90,7 +90,8 @@ class SearchEngine:
                 keyframes=keyframes,
                 frame_indices=frame_indices,
                 score=max(scores),
-                local_file_path=first_item.local_file_path
+                local_file_path=first_item.local_file_path,
+                display_keyframe=True
             )
 
             result.append(item)
@@ -126,8 +127,10 @@ class SearchEngine:
             data.append([])
             cnt += 1
 
+        keyframe_map = {}
         for i, item in enumerate(video):
             data[query_pos_map[item.query]].append(item)
+            keyframe_map[item.frame_index] = item.keyframe
 
         indices = []
         score = 0
@@ -142,12 +145,15 @@ class SearchEngine:
         indices = list(set(indices))
         indices.sort()
 
+        keyframes = [keyframe_map[x] for x in indices]
+
         return VideoResult(
             video_id=video[0].video_id,
             group_id=video[0].group_id,
             fps=video[0].fps,
-            keyframes=[],
+            keyframes=keyframes,
             frame_indices=indices,
             score=score,
-            local_file_path=video[0].local_file_path
+            local_file_path=video[0].local_file_path,
+            display_keyframe=True,
         )

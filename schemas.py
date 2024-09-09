@@ -23,6 +23,7 @@ class VideoResult(BaseModel):
     fps: float
     score: float
     local_file_path: str  # absolute file path of the video on server
+    display_keyframe: Optional[bool] = True
 
 
 class SearchResult(BaseModel):
