@@ -112,3 +112,6 @@ class SBIRModel:
         sk = F.normalize(sk)
         sk = sk[0]
         return sk.cpu().detach().numpy()
+
+
+jina_model = JinaCLIP()

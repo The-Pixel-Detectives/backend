@@ -1,0 +1,184 @@
+import numpy as np
+from typing import List
+from schemas import SearchResult
+from .image_engine import ImageEngine
+from .text_engine import TextEngine
+from schemas import SearchRequest, VideoResult, ImageResult
+
+
+class SearchEngine:
+    def __init__(self, client):
+        self.image_engine = ImageEngine(client)
+        self.text_engine = TextEngine(client)
+        self.weights = {
+            "text": 0.9,
+            "image": 0.1,
+        }
+        self.text_keep_threshold = 0.11
+        self.image_keep_threshold = 0.45
+        self.frame_index_purnish_w = 1.0
+
+    def search(self, item: SearchRequest) -> SearchResult:
+        top_k = item.top_k
+        text_queries = [x.strip() for x in item.text_queries if x.strip() != ""]
+        image_queries = [x.strip() for x in item.image_ids if x.strip() != ""]
+
+        is_multiple_search = len(text_queries) > 1
+
+        # search image by text
+        text_results = []
+        for query in text_queries:
+            text_results += self.text_engine.search(
+                queries=[query],
+                top_k=top_k * 10
+            )
+
+        image_dict = {}
+        for item in text_results:
+            id = item.id
+            if item.score < self.text_keep_threshold:
+                continue
+            item.score = item.score * self.weights["text"]
+            image_dict[id] = item
+
+        # search image by image
+        if not is_multiple_search:
+            image_results = self.image_engine.search(
+                queries=image_queries,
+                top_k=top_k * 10
+            )
+
+            for item in image_results:
+                id = item.id
+                if item.score < self.image_keep_threshold:
+                    continue
+                item.score = item.score * self.weights["image"]
+                if id not in image_dict:
+                    image_dict[id] = item
+                else:
+                    image_dict[id].score += item.score
+
+        video_dict = {}
+        for item in image_dict.values():
+            id = item.video_id
+            if id not in video_dict:
+                video_dict[id] = [item]
+            else:
+                video_dict[id].append(item)
+
+        if is_multiple_search:
+            return self.handle_multple_text_queries(video_dict, text_queries)
+
+        result = []
+        for video in video_dict.values():
+            video.sort(key=lambda x: x.score, reverse=True)
+            video = video[:min(len(video), 5)]
+
+            keyframes = [x.keyframe for x in video]
+            keyframes.sort()
+
+            frame_indices = [x.frame_index for x in video]
+            frame_indices.sort()
+
+            scores = [x.score for x in video]
+
+            first_item = video[0]
+            item = VideoResult(
+                video_id=first_item.video_id,
+                group_id=first_item.group_id,
+                fps=first_item.fps,
+                keyframes=keyframes,
+                frame_indices=frame_indices,
+                score=max(scores),
+                local_file_path=first_item.local_file_path
+            )
+
+            result.append(item)
+
+        result.sort(key=lambda x: x.score, reverse=True)
+        result = result[:min(len(result), top_k)]
+
+        return SearchResult(videos=result)
+
+    def handle_multple_text_queries(
+        self,
+        video_dict: dict,
+        queries: List[str]
+    ):
+        result = []
+        for video in video_dict.values():
+            video = self.find_video_segment(video, queries)
+            if video is not None:
+                result.append(video)
+
+        return SearchResult(videos=result)
+
+    def find_video_segment(self, video: List[ImageResult], queries: List[str]):
+        query_pos_map = {}
+        data = []
+        cnt = 0
+        for query in queries:
+            query_pos_map[query] = cnt
+            data.append([])
+            cnt += 1
+
+        frame_set = set()
+        for i, item in enumerate(video):
+            data[query_pos_map[item.query]].append(item)
+            frame_set.add(item.frame_index)
+
+        frame_list = list(frame_set)
+        frame_list.sort()
+        frame_pos_map = {}
+        for i, p in enumerate(frame_list):
+            frame_pos_map[p] = i
+
+        matrix = np.zeros((len(data), len(frame_set)))
+        for i, row in enumerate(data):
+            for item in row:
+                matrix[i, frame_pos_map[item.frame_index]] = item.score
+
+        print(matrix)
+        results = []
+        self.dfs(matrix, 0, 0, 0., [], results)
+        if len(results) == 0:
+            return None
+
+        for i in range(len(results)):
+            cells, score = results[i]
+            # punish the distance
+            for j in range(1, len(cells)):
+                diff = (cells[j] - cells[j-1]) / video[0].fps * self.frame_index_purnish_w
+                score -= diff
+                print(diff)
+            results[i][1] = score
+
+        results.sort(key=lambda x: x[1], reverse=True)
+        print(results)
+        indices, score = results[0]
+        frame_indices = []
+        for i in indices:
+            frame_indices.append(frame_list[i])
+
+        return VideoResult(
+            video_id=video[0].video_id,
+            group_id=video[0].group_id,
+            fps=video[0].fps,
+            keyframes=[],
+            frame_indices=frame_indices,
+            score=score,
+            local_file_path=video[0].local_file_path
+        )
+
+    def dfs(self, matrix: np.ndarray, row: int, prev_col: int, current_score: float, cells: list, results: list):
+        if row == matrix.shape[0]:
+            results.append([cells, current_score])
+            return
+
+        for col in range(prev_col, matrix.shape[1]):
+            if matrix[row, col] <= 0:
+                continue
+
+            score = current_score + matrix[row, col]
+            result_cells = cells + [col]
+            self.dfs(matrix, row + 1, col, score, result_cells, results)

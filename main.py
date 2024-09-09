@@ -5,8 +5,9 @@ from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from schemas import SearchResult, SearchRequest
-from engines import TextEngine
-from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path
+from qdrant_client import QdrantClient
+from engines import SearchEngine
+from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path
 from uuid import uuid4
 
 
@@ -21,7 +22,8 @@ app.add_middleware(
 )
 
 
-text_engine = TextEngine()
+client = QdrantClient(host="localhost", port=6333)
+search_engine = SearchEngine(client)
 
 
 @app.get("/")
@@ -47,6 +49,14 @@ async def get_video_thumbnail(group_id: str, video_id: str, frame_indices: str, 
             img_path = get_keyframe_path(group_id, video_id, idx)
             img = cv2.imread(img_path)
             imgs.append(img)
+    else:
+        video_path = get_video_path(group_id, video_id)
+        for idx in frame_indices:
+            cap = cv2.VideoCapture(video_path)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)  # Set frame position
+            res, img = cap.read()
+            imgs.append(img)
+
     concat_img = np.concatenate(imgs, axis=1)
     _, buffer = cv2.imencode('.png', concat_img)
 
@@ -72,7 +82,7 @@ async def search_video(
     item: SearchRequest
 ):
     print(item)
-    result = text_engine.search(item.text_queries, top_k=item.top_k)
+    result = search_engine.search(item)
     print(f"Found {len(result.videos)} videos")
     return result
 
