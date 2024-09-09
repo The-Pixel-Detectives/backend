@@ -67,7 +67,7 @@ class SearchEngine:
                 video_dict[id].append(item)
 
         if is_multiple_search:
-            return self.handle_multple_text_queries(video_dict, text_queries)
+            return self.handle_multple_text_queries(video_dict, text_queries, top_k=top_k)
 
         result = []
         for video in video_dict.values():
@@ -103,13 +103,17 @@ class SearchEngine:
     def handle_multple_text_queries(
         self,
         video_dict: dict,
-        queries: List[str]
+        queries: List[str],
+        top_k: int
     ):
         result = []
         for video in video_dict.values():
             video = self.find_video_segment(video, queries)
             if video is not None:
                 result.append(video)
+
+        result.sort(key=lambda x: x.score, reverse=True)
+        result = result[:min(len(result), top_k)]
 
         return SearchResult(videos=result)
 
