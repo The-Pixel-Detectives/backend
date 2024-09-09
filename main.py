@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import math
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,7 +58,23 @@ async def get_video_thumbnail(group_id: str, video_id: str, frame_indices: str, 
             res, img = cap.read()
             imgs.append(img)
 
-    concat_img = np.concatenate(imgs, axis=1)
+    lim = 5
+    num_row = math.ceil(len(imgs) / lim)
+    rows = []
+    blank_img = np.zeros_like(imgs[0])
+    for _ in range(num_row):
+        row = imgs[:lim]
+        if len(row) < lim:
+            row = row + [blank_img] * (lim - len(row))
+        row = np.concatenate(row, axis=1)
+        rows.append(row)
+
+        if len(imgs) > lim:
+            imgs = imgs[lim:]
+
+    concat_img = np.concatenate(rows, axis=0)
+
+    # concat_img = np.concatenate(imgs, axis=1)
     _, buffer = cv2.imencode('.png', concat_img)
 
     return Response(content=buffer.tobytes(), media_type="image/png")
