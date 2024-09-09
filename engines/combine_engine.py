@@ -122,63 +122,28 @@ class SearchEngine:
             data.append([])
             cnt += 1
 
-        frame_set = set()
         for i, item in enumerate(video):
             data[query_pos_map[item.query]].append(item)
-            frame_set.add(item.frame_index)
 
-        frame_list = list(frame_set)
-        frame_list.sort()
-        frame_pos_map = {}
-        for i, p in enumerate(frame_list):
-            frame_pos_map[p] = i
+        indices = []
+        score = 0
+        for row in data:
+            if len(row) == 0:
+                continue
+            row.sort(key=lambda x: x.score, reverse=True)
+            row = row[:min(5, len(row))]
+            indices.extend([x.frame_index for x in row])
+            score += max([x.score for x in row])
 
-        matrix = np.zeros((len(data), len(frame_set)))
-        for i, row in enumerate(data):
-            for item in row:
-                matrix[i, frame_pos_map[item.frame_index]] = item.score
-
-        print(matrix)
-        results = []
-        self.dfs(matrix, 0, 0, 0., [], results)
-        if len(results) == 0:
-            return None
-
-        for i in range(len(results)):
-            cells, score = results[i]
-            # punish the distance
-            for j in range(1, len(cells)):
-                diff = (cells[j] - cells[j-1]) / video[0].fps * self.frame_index_purnish_w
-                score -= diff
-                print(diff)
-            results[i][1] = score
-
-        results.sort(key=lambda x: x[1], reverse=True)
-        print(results)
-        indices, score = results[0]
-        frame_indices = []
-        for i in indices:
-            frame_indices.append(frame_list[i])
+        indices = list(set(indices))
+        indices.sort()
 
         return VideoResult(
             video_id=video[0].video_id,
             group_id=video[0].group_id,
             fps=video[0].fps,
             keyframes=[],
-            frame_indices=frame_indices,
+            frame_indices=indices,
             score=score,
             local_file_path=video[0].local_file_path
         )
-
-    def dfs(self, matrix: np.ndarray, row: int, prev_col: int, current_score: float, cells: list, results: list):
-        if row == matrix.shape[0]:
-            results.append([cells, current_score])
-            return
-
-        for col in range(prev_col, matrix.shape[1]):
-            if matrix[row, col] <= 0:
-                continue
-
-            score = current_score + matrix[row, col]
-            result_cells = cells + [col]
-            self.dfs(matrix, row + 1, col, score, result_cells, results)
