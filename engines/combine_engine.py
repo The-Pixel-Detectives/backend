@@ -114,8 +114,8 @@ class SearchEngine:
 
             video.sort(key=lambda x: x.frame_index)
             fps = video[0].fps
-            window_len = fps * 10
-            # split into chunks of 10s, overlap 5 seconds
+            window_len = fps * 30
+            # split into chunks of 30s
             chunk = []
             for item in video:
                 if len(chunk) == 0:
