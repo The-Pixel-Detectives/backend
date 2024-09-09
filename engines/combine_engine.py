@@ -109,9 +109,32 @@ class SearchEngine:
     ):
         result = []
         for video in video_dict.values():
-            video = self.find_video_segment(video, queries)
-            if video is not None:
-                result.append(video)
+            if len(video) == 0:
+                continue
+
+            video.sort(key=lambda x: x.frame_index)
+            fps = video[0].fps
+            window_len = fps * 10
+            # split into chunks of 10s, overlap 5 seconds
+            chunk = []
+            for item in video:
+                if len(chunk) == 0:
+                    chunk.append(item)
+                    continue
+
+                if item.frame_index - chunk[0].frame_index > window_len:
+                    segment = self.find_video_segment(chunk, queries)
+                    if segment is not None:
+                        result.append(segment)
+
+                    min_index = item.frame_index - window_len
+                    chunk = [x for x in chunk if x.frame_index > min_index]
+                chunk.append(item)
+
+            if len(chunk) > 0:
+                segment = self.find_video_segment(chunk, queries)
+                if segment is not None:
+                    result.append(segment)
 
         result.sort(key=lambda x: x.score, reverse=True)
         result = result[:min(len(result), top_k)]
