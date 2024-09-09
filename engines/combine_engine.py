@@ -134,13 +134,17 @@ class SearchEngine:
 
         indices = []
         score = 0
+        prev_min_index = 0
         for row in data:
+            row = [x for x in row if x.frame_index > prev_min_index]
             if len(row) == 0:
                 continue
+
             row.sort(key=lambda x: x.score, reverse=True)
             row = row[:min(5, len(row))]
             indices.extend([x.frame_index for x in row])
             score += max([x.score for x in row])
+            prev_min_index = min([x.frame_index for x in row])
 
         indices = list(set(indices))
         indices.sort()
