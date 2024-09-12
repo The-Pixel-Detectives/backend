@@ -34,3 +34,12 @@ class SearchRequest(BaseModel):
     image_ids: Optional[list[str]] = []  # list of uploaded image ids
     text_queries: Optional[list[str]] = []
     top_k: int = 10
+
+
+class TranslationRequest(BaseModel):
+    query: str
+    num_frames: int
+
+
+class TranslationRespone(BaseModel):
+    sentences: list[str]

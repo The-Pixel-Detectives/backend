@@ -5,9 +5,10 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
-from schemas import SearchResult, SearchRequest
+from schemas import SearchResult, SearchRequest, TranslationRequest, TranslationRespone
 from qdrant_client import QdrantClient
 from engines import SearchEngine
+from services.openai_service import OpenAIService
 from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path
 from uuid import uuid4
 
@@ -102,6 +103,16 @@ async def search_video(
     result = search_engine.search(item)
     print(f"Found {len(result.videos)} videos")
     return result
+
+
+@app.post("/translate")
+async def translate_query(
+    item: TranslationRequest
+):
+    print(item.query)
+    response = OpenAIService.translate_query(text=item.query, num_frames=item.num_frames)
+    print(response)
+    return response
 
 
 if __name__ == "__main__":

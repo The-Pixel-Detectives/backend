@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     KEYFRAME_DIR: str
     SKETCH_IMG_DIR: str
 
+    OPENAI_API_KEY: str
+
     class Config:
         env_file = ".env"
 
