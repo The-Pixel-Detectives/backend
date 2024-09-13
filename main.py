@@ -9,7 +9,7 @@ from schemas import SearchResult, SearchRequest, TranslationRequest, Translation
 from qdrant_client import QdrantClient
 from engines import SearchEngine
 from services.openai_service import OpenAIService
-from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path
+from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path, visualize_images
 from uuid import uuid4
 
 
@@ -59,21 +59,28 @@ async def get_video_thumbnail(group_id: str, video_id: str, frame_indices: str, 
             res, img = cap.read()
             imgs.append(img)
 
-    lim = 5
-    num_row = math.ceil(len(imgs) / lim)
-    rows = []
-    blank_img = np.zeros_like(imgs[0])
-    for _ in range(num_row):
-        row = imgs[:lim]
-        if len(row) < lim:
-            row = row + [blank_img] * (lim - len(row))
-        row = np.concatenate(row, axis=1)
-        rows.append(row)
+    concat_img = visualize_images(imgs, lim=5)
 
-        if len(imgs) > lim:
-            imgs = imgs[lim:]
+    # concat_img = np.concatenate(imgs, axis=1)
+    _, buffer = cv2.imencode('.png', concat_img)
 
-    concat_img = np.concatenate(rows, axis=0)
+    return Response(content=buffer.tobytes(), media_type="image/png")
+
+
+@app.get("/get-video-preview")
+async def get_video_preview(group_id: str, video_id: str, start_index: int, end_index: int, num_skip_frames: int):
+    '''
+    Return one image containing all requested frames
+    '''
+    imgs = []
+    video_path = get_video_path(group_id, video_id)
+    for idx in range(start_index, end_index+1, num_skip_frames):
+        cap = cv2.VideoCapture(video_path)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)  # Set frame position
+        res, img = cap.read()
+        imgs.append(img)
+
+    concat_img = visualize_images(imgs, lim=5)
 
     # concat_img = np.concatenate(imgs, axis=1)
     _, buffer = cv2.imencode('.png', concat_img)
