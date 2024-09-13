@@ -57,6 +57,7 @@ async def get_video_thumbnail(group_id: str, video_id: str, frame_indices: str, 
             cap = cv2.VideoCapture(video_path)
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)  # Set frame position
             res, img = cap.read()
+            img = cv2.resize(img, (128, 128))
             imgs.append(img)
 
     concat_img = visualize_images(imgs, lim=5)
@@ -78,6 +79,7 @@ async def get_video_preview(group_id: str, video_id: str, start_index: int, end_
         cap = cv2.VideoCapture(video_path)
         cap.set(cv2.CAP_PROP_POS_FRAMES, idx)  # Set frame position
         res, img = cap.read()
+        img = cv2.resize(img, (128, 128))
         imgs.append(img)
 
     concat_img = visualize_images(imgs, lim=5)
