@@ -11,7 +11,7 @@ from engines import SearchEngine
 from services.openai_service import OpenAIService
 from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path, visualize_images
 from uuid import uuid4
-
+from services.export_csv import generate_frame_indices, export_to_csv 
 
 app = FastAPI()
 
@@ -122,6 +122,24 @@ async def translate_query(
     response = OpenAIService.translate_query(text=item.query, num_frames=item.num_frames)
     print(response)
     return response
+
+@app.post("/export-frames")
+async def export_frames(
+    video_id: str, start_time: int, end_time: int, filename: str
+):
+    try:
+        # Generate frame indices
+        frame_indices = generate_frame_indices(start_time, end_time)
+        
+        # Export to CSV
+        filepath = export_to_csv(video_id, frame_indices, filename)
+        
+        # Send the CSV file as a response
+        return Response(content=open(filepath, "rb").read(), media_type="text/csv", headers={
+            "Content-Disposition": f"attachment; filename={filename}.csv"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
