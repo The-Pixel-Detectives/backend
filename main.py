@@ -11,6 +11,7 @@ from engines import SearchEngine
 from services.openai_service import OpenAIService
 from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path, visualize_images
 from uuid import uuid4
+import os
 
 
 app = FastAPI()
@@ -123,6 +124,55 @@ async def translate_query(
     print(response)
     return response
 
+@app.post("/open-video")
+async def open_video(video_id: str, group_id: str, start_index: int, end_index: int, num_skip_frames: int):
+    '''
+    Open the video file, check the OS, and process frames from start_index to end_index, skipping num_skip_frames in between.
+    '''
+    video_path = get_video_path(request.group_id, request.video_id)
+    imgs = []
 
+    if os.path.exists(video_path):
+        try:
+            # Check the operating system and log which one is being used
+            if os.name == 'posix':  # macOS or Linux
+                print("Operating system: macOS or Linux")
+            elif os.name == 'nt':  # Windows
+                print("Operating system: Windows")
+
+            # Open the video using cv2
+            cap = cv2.VideoCapture(video_path)
+
+            # if not cap.isOpened():
+            #     return JSONResponse(content={"error": "Failed to open video with cv2"}, status_code=500)
+
+            # Process the specified frame range
+            for idx in range(start_index, end_index + 1, num_skip_frames):
+                cap.set(cv2.CAP_PROP_POS_FRAMES, idx)  # Set the position to the desired frame
+                ret, frame = cap.read()
+
+                # if not ret:
+                #     return JSONResponse(content={"error": f"Failed to read frame at index {idx}"}, status_code=500)
+
+                # Resize frame to 256x144 (as per your requirement)
+                resized_frame = cv2.resize(frame, (256, 144))
+                imgs.append(resized_frame)
+
+            cap.release()
+
+            # Display the frames (if required for debugging or visualization)
+            for img in imgs:
+                cv2.imshow('Frame', img)
+                cv2.waitKey(25)  # Display each frame for 25 ms (adjust as needed)
+
+            cv2.destroyAllWindows()
+
+            return Response(content={"status": "Video processed successfully", "video_id": video_id}, status_code=200)
+
+        except Exception as e:
+            return Response(content={"error": str(e)}, status_code=500)
+    else:
+        return Response(content={"error": "Video not found"}, status_code=404)
+    
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
