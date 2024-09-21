@@ -46,7 +46,7 @@ if not client.collection_exists(collection_name):
 group_list = os.listdir(input_dir)
 group_list.sort()
 # group_list = group_list[5:]
-batch_size = 100
+batch_size = 200
 for group in tqdm(group_list):
     group_dir = os.path.join(input_dir, group)
     if not os.path.isdir(group_dir):

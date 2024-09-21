@@ -40,7 +40,7 @@ def vlc_open(video_path, start_time):
     if os.name == 'posix':  # macOS or Linux
         os.system(f"/Applications/VLC.app/Contents/MacOS/VLC --start-time={start_time} --play-and-exit {video_path} &")
     else:
-        os.system(f"start vlc --start-time={start_time} --play-and-exit {video_path}")
+        os.system(f"vlc --start-time={start_time} --play-and-exit {video_path}")
 
 @app.get("/")
 async def homepage():
