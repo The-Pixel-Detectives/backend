@@ -15,7 +15,7 @@ services:
       - source: qdrant_config
         target: /qdrant/config/production.yaml
     volumes:
-      - /Volumes/Data/AI/Challenge/data/qdrant:/qdrant/storage
+      - /Users/vothanhhoanganh/Programming/aic-pd/data:/qdrant/storage
 
 configs:
   qdrant_config:

@@ -13,6 +13,7 @@ from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe
 from uuid import uuid4
 from services.export_csv import generate_frame_indices, export_to_csv 
 from schemas import SearchRequest 
+from fastapi.exceptions import HTTPException
 
 app = FastAPI()
 
@@ -132,24 +133,29 @@ async def translate_query(
     print(response)
     return response
 
-@app.post("/export-frames")
-async def export_frames(
-    video_id: str, start_time: int, end_time: int, filename: str
+@app.get("/export-csv")
+async def export_csv(
+    video_id: str, start_time: int, first_frame_end_time: int, end_time: int, filename: str, qa: str
 ):
     try:
-        # Generate frame indices
-        frame_indices = generate_frame_indices(start_time, end_time)
-        
-        # Export to CSV
-        filepath = export_to_csv(video_id, frame_indices, filename)
-        
-        # Send the CSV file as a response
+        group_id = video_id.split("_")[0]
+        video_path = get_video_path(group_id, video_id)
+        print("video_path", video_path)
+
+        # Generate frame index for the first frame (from start_time to first_frame_end_time then get the middle)
+        first_frame_indices = generate_frame_indices(video_path, start_time, first_frame_end_time)
+        middle_first_frame_index = first_frame_indices[0] # middle frame index of the first range
+
+        frame_indices = generate_frame_indices(video_path, start_time, end_time) # remaining 99 frames
+        frame_indices = [middle_first_frame_index] + frame_indices[:99]  # concat
+
+        filepath = export_to_csv(video_id, frame_indices, filename, qa)
+
         return Response(content=open(filepath, "rb").read(), media_type="text/csv", headers={
             "Content-Disposition": f"attachment; filename={filename}.csv"
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
