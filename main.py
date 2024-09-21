@@ -192,7 +192,9 @@ async def open_video(request: OpenVideoRequest):
     video_id = request.video_id
     group_id = video_id.split("_")[0]
     video_path = get_video_path(group_id, request.video_id)
-    vlc_open(video_path, request.start_time)
+    t = threading.Thread(target=vlc_open, args=(video_path, request.start_time))
+    t.daemon = True
+    t.start()
 
 
 if __name__ == "__main__":
