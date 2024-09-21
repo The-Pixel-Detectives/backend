@@ -43,3 +43,8 @@ class TranslationRequest(BaseModel):
 
 class TranslationRespone(BaseModel):
     sentences: list[str]
+
+
+class OpenVideoRequest(BaseModel):
+    video_id: str
+    start_time: float  # seconds

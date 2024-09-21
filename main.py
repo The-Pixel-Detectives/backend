@@ -1,11 +1,13 @@
 import cv2
+import os
 import numpy as np
 import math
+import threading
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
-from schemas import SearchResult, SearchRequest, TranslationRequest, TranslationRespone
+from schemas import SearchResult, SearchRequest, TranslationRequest, TranslationRespone, OpenVideoRequest
 from qdrant_client import QdrantClient
 from engines import SearchEngine
 from services.openai_service import OpenAIService
@@ -14,6 +16,10 @@ from uuid import uuid4
 from services.export_csv import generate_frame_indices, export_to_csv 
 from schemas import SearchRequest 
 from fastapi.exceptions import HTTPException
+
+if os.name == 'posix':  # macOS or Linux
+    os.system("alias vlc='/Applications/VLC.app/Contents/MacOS/VLC'")
+
 
 app = FastAPI()
 
@@ -29,11 +35,12 @@ app.add_middleware(
 client = QdrantClient(host="localhost", port=6333)
 search_engine = SearchEngine(client)
 
+def vlc_open(video_path, start_time):
+    os.system(f"vlc --start-time={start_time} {video_path}")
 
 @app.get("/")
 async def homepage():
     return {"message": "Welcome to The Pixel Detectives."}
-
 
 @app.get("/health")
 async def check_health():
@@ -156,6 +163,19 @@ async def export_csv(
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/open-video")
+async def open_video(request: OpenVideoRequest):
+    '''
+    Open the video file, check the OS, and process frames from start_index to end_index, skipping num_skip_frames in between.
+    '''
+    video_id = request.video_id
+    group_id = video_id.split("_")[0]
+    video_path = get_video_path(group_id, request.video_id)
+    t = threading.Thread(target=vlc_open, args=(video_path, request.start_time))
+    t.daemon = True
+    t.start()
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
