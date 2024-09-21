@@ -1,16 +1,21 @@
 import cv2
+import os
 import numpy as np
 import math
+import threading
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
-from schemas import SearchResult, SearchRequest, TranslationRequest, TranslationRespone
+from schemas import SearchResult, SearchRequest, TranslationRequest, TranslationRespone, OpenVideoRequest
 from qdrant_client import QdrantClient
 from engines import SearchEngine
 from services.openai_service import OpenAIService
 from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path, visualize_images
 from uuid import uuid4
+
+if os.name == 'posix':  # macOS or Linux
+    os.system("alias vlc='/Applications/VLC.app/Contents/MacOS/VLC'")
 
 
 app = FastAPI()
@@ -26,6 +31,10 @@ app.add_middleware(
 
 client = QdrantClient(host="localhost", port=6333)
 search_engine = SearchEngine(client)
+
+
+def vlc_open(video_path):
+    os.system(f"vlc --start-time=83.4 {video_path}")
 
 
 @app.get("/")
@@ -122,6 +131,19 @@ async def translate_query(
     response = OpenAIService.translate_query(text=item.query, num_frames=item.num_frames)
     print(response)
     return response
+
+
+@app.post("/open-video")
+async def open_video(request: OpenVideoRequest):
+    '''
+    Open the video file, check the OS, and process frames from start_index to end_index, skipping num_skip_frames in between.
+    '''
+    video_id = request.video_id
+    group_id = video_id.split("_")[0]
+    video_path = get_video_path(group_id, request.video_id)
+    t = threading.Thread(target=vlc_open, args=(video_path,))
+    t.daemon = True
+    t.start()
 
 
 if __name__ == "__main__":
