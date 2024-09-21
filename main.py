@@ -13,6 +13,9 @@ from engines import SearchEngine
 from services.openai_service import OpenAIService
 from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path, visualize_images
 from uuid import uuid4
+from services.export_csv import generate_frame_indices, export_to_csv 
+from schemas import SearchRequest 
+from fastapi.exceptions import HTTPException
 
 if os.name == 'posix':  # macOS or Linux
     os.system("alias vlc='/Applications/VLC.app/Contents/MacOS/VLC'")
@@ -32,15 +35,12 @@ app.add_middleware(
 client = QdrantClient(host="localhost", port=6333)
 search_engine = SearchEngine(client)
 
-
-def vlc_open(video_path):
-    os.system(f"vlc --start-time=83.4 {video_path}")
-
+def vlc_open(video_path, start_time):
+    os.system(f"vlc --start-time={start_time} {video_path}")
 
 @app.get("/")
 async def homepage():
     return {"message": "Welcome to The Pixel Detectives."}
-
 
 @app.get("/health")
 async def check_health():
@@ -118,7 +118,15 @@ async def search_video(
     item: SearchRequest
 ):
     print(item)
-    result = search_engine.search(item)
+
+    # If video_id is provided, filter the search results by video_id
+    if item.video_id:
+        result = search_engine.search(item)
+        filtered_videos = [video for video in result.videos if video.video_id == item.video_id]
+        result.videos = filtered_videos
+    else:
+        result = search_engine.search(item)    
+        
     print(f"Found {len(result.videos)} videos")
     return result
 
@@ -132,6 +140,29 @@ async def translate_query(
     print(response)
     return response
 
+@app.get("/export-csv")
+async def export_csv(
+    video_id: str, start_time: int, first_frame_end_time: int, end_time: int, filename: str, qa: str
+):
+    try:
+        group_id = video_id.split("_")[0]
+        video_path = get_video_path(group_id, video_id)
+        print("video_path", video_path)
+
+        # Generate frame index for the first frame (from start_time to first_frame_end_time then get the middle)
+        first_frame_indices = generate_frame_indices(video_path, start_time, first_frame_end_time)
+        middle_first_frame_index = first_frame_indices[0] # middle frame index of the first range
+
+        frame_indices = generate_frame_indices(video_path, start_time, end_time) # remaining 99 frames
+        frame_indices = [middle_first_frame_index] + frame_indices[:99]  # concat
+
+        filepath = export_to_csv(video_id, frame_indices, filename, qa)
+
+        return Response(content=open(filepath, "rb").read(), media_type="text/csv", headers={
+            "Content-Disposition": f"attachment; filename={filename}.csv"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/open-video")
 async def open_video(request: OpenVideoRequest):
@@ -141,7 +172,7 @@ async def open_video(request: OpenVideoRequest):
     video_id = request.video_id
     group_id = video_id.split("_")[0]
     video_path = get_video_path(group_id, request.video_id)
-    t = threading.Thread(target=vlc_open, args=(video_path,))
+    t = threading.Thread(target=vlc_open, args=(video_path, request.start_time))
     t.daemon = True
     t.start()
 
