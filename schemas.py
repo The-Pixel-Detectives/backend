@@ -20,6 +20,7 @@ class VideoResult(BaseModel):
     group_id: str
     keyframes: List[int]
     frame_indices: List[int]
+    timestamps: List[float]
     fps: float
     score: float
     local_file_path: str  # absolute file path of the video on server

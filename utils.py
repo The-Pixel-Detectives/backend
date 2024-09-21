@@ -11,7 +11,7 @@ def get_video_path(group_id, video_id):
 
 
 def get_keyframe_path(group_id, video_id, idx):
-    return os.path.join(settings.KEYFRAME_DIR, f"Keyframes_{group_id}", "keyframes", video_id, f"{idx:03d}.jpg")
+    return os.path.join(settings.KEYFRAME_DIR, f"Videos_{group_id}", video_id, f"{idx}.jpeg")
 
 
 def get_sketch_img_path(id):

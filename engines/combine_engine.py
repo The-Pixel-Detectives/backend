@@ -17,6 +17,7 @@ class SearchEngine:
         self.text_keep_threshold = 0.11
         self.image_keep_threshold = 0.45
         self.frame_index_purnish_w = 1.0
+        self.search_top_k_factor = 30
 
     def search(self, item: SearchRequest) -> SearchResult:
         top_k = item.top_k
@@ -30,7 +31,7 @@ class SearchEngine:
         for query in text_queries:
             text_results += self.text_engine.search(
                 queries=[query],
-                top_k=top_k * 10
+                top_k=top_k * self.search_top_k_factor
             )
 
         image_dict = {}
@@ -45,7 +46,7 @@ class SearchEngine:
         if not is_multiple_search:
             image_results = self.image_engine.search(
                 queries=image_queries,
-                top_k=top_k * 10
+                top_k=top_k * self.search_top_k_factor
             )
 
             for item in image_results:
@@ -89,6 +90,7 @@ class SearchEngine:
                 fps=first_item.fps,
                 keyframes=keyframes,
                 frame_indices=frame_indices,
+                timestamps=[v/first_item.fps for v in frame_indices],
                 score=max(scores),
                 local_file_path=first_item.local_file_path,
                 display_keyframe=True
@@ -180,6 +182,7 @@ class SearchEngine:
             fps=video[0].fps,
             keyframes=keyframes,
             frame_indices=indices,
+            timestamps=[v/video[0].fps for v in indices],
             score=score,
             local_file_path=video[0].local_file_path,
             display_keyframe=True,

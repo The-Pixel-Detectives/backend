@@ -19,6 +19,7 @@ from fastapi.exceptions import HTTPException
 
 if os.name == 'posix':  # macOS or Linux
     os.system("alias vlc='/Applications/VLC.app/Contents/MacOS/VLC'")
+os.makedirs("exports", exist_ok=True)
 
 
 app = FastAPI()
@@ -36,7 +37,10 @@ client = QdrantClient(host="localhost", port=6333)
 search_engine = SearchEngine(client)
 
 def vlc_open(video_path, start_time):
-    os.system(f"vlc --start-time={start_time} {video_path}")
+    if os.name == 'posix':  # macOS or Linux
+        os.system(f"/Applications/VLC.app/Contents/MacOS/VLC --start-time={start_time} --play-and-exit {video_path} &")
+    else:
+        os.system(f"start vlc --start-time={start_time} --play-and-exit {video_path}")
 
 @app.get("/")
 async def homepage():
@@ -45,6 +49,20 @@ async def homepage():
 @app.get("/health")
 async def check_health():
     return {"message": "I am good. Thank you."}
+
+
+@app.get("/get-image")
+async def get_single_image(group_id: str, video_id: str, frame_index: str):
+    '''
+    Return one image containing all requested frames
+    '''
+    img_path = get_keyframe_path(group_id, video_id, frame_index)
+    img = cv2.imread(img_path)
+    img = cv2.resize(img, (256, 144))
+
+    _, buffer = cv2.imencode('.png', img)
+
+    return Response(content=buffer.tobytes(), media_type="image/png")
 
 
 @app.get("/thumbnail")
@@ -59,6 +77,7 @@ async def get_video_thumbnail(group_id: str, video_id: str, frame_indices: str, 
         for idx in frame_indices:
             img_path = get_keyframe_path(group_id, video_id, idx)
             img = cv2.imread(img_path)
+            img = cv2.resize(img, (256, 144))
             imgs.append(img)
     else:
         video_path = get_video_path(group_id, video_id)
@@ -120,12 +139,12 @@ async def search_video(
     print(item)
 
     # If video_id is provided, filter the search results by video_id
-    if item.video_id:
-        result = search_engine.search(item)
-        filtered_videos = [video for video in result.videos if video.video_id == item.video_id]
-        result.videos = filtered_videos
-    else:
-        result = search_engine.search(item)
+    # if item.video_id:
+    #     result = search_engine.search(item)
+    #     filtered_videos = [video for video in result.videos if video.video_id == item.video_id]
+    #     result.videos = filtered_videos
+    # else:
+    result = search_engine.search(item)
 
     print(f"Found {len(result.videos)} videos")
     return result
@@ -142,7 +161,7 @@ async def translate_query(
 
 @app.get("/export-csv")
 async def export_csv(
-    video_id: str, start_time: int, first_frame_end_time: int, end_time: int, filename: str, qa: str
+    video_id: str, start_time: float, first_frame_end_time: float, end_time: float, filename: str, qa: str
 ):
     try:
         group_id = video_id.split("_")[0]
@@ -151,10 +170,10 @@ async def export_csv(
 
         # Generate frame index for the first frame (from start_time to first_frame_end_time then get the middle)
         first_frame_indices = generate_frame_indices(video_path, start_time, first_frame_end_time)
-        middle_first_frame_index = first_frame_indices[0] # middle frame index of the first range
+        middle_first_frame_index = first_frame_indices[:min(len(first_frame_indices), 10)] # middle frame index of the first range
 
         frame_indices = generate_frame_indices(video_path, start_time, end_time) # remaining 99 frames
-        frame_indices = [middle_first_frame_index] + frame_indices[:99]  # concat
+        frame_indices = middle_first_frame_index + frame_indices[:99-len(middle_first_frame_index)]  # concat
 
         filepath = export_to_csv(video_id, frame_indices, filename, qa)
 
@@ -169,12 +188,11 @@ async def open_video(request: OpenVideoRequest):
     '''
     Open the video file, check the OS, and process frames from start_index to end_index, skipping num_skip_frames in between.
     '''
+    print(request)
     video_id = request.video_id
     group_id = video_id.split("_")[0]
     video_path = get_video_path(group_id, request.video_id)
-    t = threading.Thread(target=vlc_open, args=(video_path, request.start_time))
-    t.daemon = True
-    t.start()
+    vlc_open(video_path, request.start_time)
 
 
 if __name__ == "__main__":

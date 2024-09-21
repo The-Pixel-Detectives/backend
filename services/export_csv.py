@@ -13,16 +13,15 @@ def get_video_fps(video_path):
 # Function to calculate frame indices based on start and end times
 def generate_frame_indices(video_path, start_time, end_time):
     fps = get_video_fps(video_path)
-    total_frames = end_time * fps
-    indices = [int(fps * t) for t in range(start_time, end_time + 1)]
-    
+    indices = [t for t in range(int(start_time * fps), int(end_time * fps), 5)]
+
     # Reorder the indices to middle → left → right
     mid = len(indices) // 2
     result = [indices[mid]]
-    
+
     left = mid - 1
     right = mid + 1
-    
+
     while left >= 0 or right < len(indices):
         if left >= 0:
             result.append(indices[left])
@@ -30,7 +29,7 @@ def generate_frame_indices(video_path, start_time, end_time):
         if right < len(indices):
             result.append(indices[right])
             right += 1
-    
+
     return result[:100]  # Limiting to 100 indices
 
 # Function to export frame indices to CSV
