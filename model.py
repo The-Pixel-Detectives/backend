@@ -55,7 +55,9 @@ class Clip4Clip:
 
 class JinaCLIP:
     def __init__(self):
+        self.device = torch.device("mps")
         self.model = AutoModel.from_pretrained('jinaai/jina-clip-v1', trust_remote_code=True)
+        self.model = self.model.to(self.device)
 
     # Function to extract embeddings from an image
     def extract_embedding(self, image):
