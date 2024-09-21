@@ -13,8 +13,8 @@ from engines import SearchEngine
 from services.openai_service import OpenAIService
 from utils import load_image_into_numpy_array, get_sketch_img_path, get_keyframe_path, get_video_path, visualize_images
 from uuid import uuid4
-from services.export_csv import generate_frame_indices, export_to_csv 
-from schemas import SearchRequest 
+from services.export_csv import generate_frame_indices, export_to_csv
+from schemas import SearchRequest
 from fastapi.exceptions import HTTPException
 
 if os.name == 'posix':  # macOS or Linux
@@ -125,8 +125,8 @@ async def search_video(
         filtered_videos = [video for video in result.videos if video.video_id == item.video_id]
         result.videos = filtered_videos
     else:
-        result = search_engine.search(item)    
-        
+        result = search_engine.search(item)
+
     print(f"Found {len(result.videos)} videos")
     return result
 
