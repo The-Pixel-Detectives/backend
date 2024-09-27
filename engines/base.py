@@ -35,8 +35,7 @@ class BaseEngine:
                 group_id=point.payload["group"],
                 frame_index=point.payload['frame_idx'],
                 keyframe=point.payload['keyframe'],
-                # fps=point.payload['fps'],
-                fps=25,
+                fps=point.payload['fps'],
                 score=point.score,
                 local_file_path=get_video_path(point.payload["group"], point.payload["video"]),
                 query=query

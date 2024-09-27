@@ -99,7 +99,7 @@ class SearchEngine:
             result.append(item)
 
         result.sort(key=lambda x: x.score, reverse=True)
-        result = result[:min(len(result), top_k)]
+        # result = result[:min(len(result), top_k)]
 
         return SearchResult(videos=result)
 
@@ -139,7 +139,7 @@ class SearchEngine:
                     result.append(segment)
 
         result.sort(key=lambda x: x.score, reverse=True)
-        result = result[:min(len(result), top_k)]
+        # result = result[:min(len(result), top_k)]
 
         return SearchResult(videos=result)
 
