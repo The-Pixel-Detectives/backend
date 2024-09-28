@@ -36,17 +36,21 @@ if not client.collection_exists(collection_name):
     if collection_name == SBIR_INDEX:
         client.create_collection(
             collection_name=collection_name,
-            vectors_config=VectorParams(size=vector_dimension, distance=Distance.EUCLID),
+            vectors_config=VectorParams(
+                size=vector_dimension, distance=Distance.EUCLID
+            ),
+            shard_number=6
         )
     else:
         client.create_collection(
             collection_name=collection_name,
             vectors_config=VectorParams(size=vector_dimension, distance=Distance.COSINE),
+            shard_number=6
         )
 
 group_list = os.listdir(input_dir)
 group_list.sort()
-# group_list = group_list[5:]
+group_list = group_list[14:]
 batch_size = 200
 for group in tqdm(group_list):
     group_dir = os.path.join(input_dir, group)
