@@ -4,20 +4,27 @@ from schemas import SearchResult
 from .image_engine import ImageEngine
 from .text_engine import TextEngine
 from schemas import SearchRequest, VideoResult, ImageResult
-
+from .keyword_engine import KeywordEngine
+from elasticsearch import Elasticsearch
 
 class SearchEngine:
     def __init__(self, client):
         self.image_engine = ImageEngine(client)
         self.text_engine = TextEngine(client)
+
+        es = Elasticsearch([{'host': 'localhost', 'port': 9200, 'scheme': 'http'}])
+        self.keyword_engine = KeywordEngine(es)
+
         self.weights = {
             "text": 0.9,
             "image": 0.1,
+            "keyword": 0.8 
         }
         self.text_keep_threshold = 0.11
         self.image_keep_threshold = 0.45
         self.frame_index_purnish_w = 1.0
-        self.search_top_k_factor = 30
+        self.search_top_k_factor = 40
+        self.keyword_keep_threshold = 0.5 
 
     def search(self, item: SearchRequest) -> SearchResult:
         top_k = item.top_k
@@ -33,6 +40,20 @@ class SearchEngine:
                 queries=[query],
                 top_k=top_k * self.search_top_k_factor
             )
+
+        # search by keyword
+        if item.use_keyword_search and item.vietnamese_query:
+            print("Vietnamese keyword searching")
+            keyword_results = []
+            keyword_results += self.keyword_engine.search_vietnamese(
+                queries=[item.vietnamese_query],
+                top_k=top_k * self.search_top_k_factor,
+                fuzzy = item.fuzzy
+            )
+        else:
+            keyword_results = []
+
+        text_results.extend(keyword_results)
 
         image_dict = {}
         for item in text_results:
@@ -58,6 +79,7 @@ class SearchEngine:
                     image_dict[id] = item
                 else:
                     image_dict[id].score += item.score
+        
 
         video_dict = {}
         for item in image_dict.values():
@@ -65,7 +87,7 @@ class SearchEngine:
             if id not in video_dict:
                 video_dict[id] = [item]
             else:
-                video_dict[id].append(item)
+                video_dict[id].append(item)            
 
         if is_multiple_search:
             return self.handle_multple_text_queries(video_dict, text_queries, top_k=top_k)
@@ -73,7 +95,7 @@ class SearchEngine:
         result = []
         for video in video_dict.values():
             video.sort(key=lambda x: x.score, reverse=True)
-            video = video[:min(len(video), 5)]
+            # video = video[:min(len(video), 5)]
 
             keyframes = [x.keyframe for x in video]
             keyframes.sort()
@@ -94,6 +116,7 @@ class SearchEngine:
                 score=max(scores),
                 local_file_path=first_item.local_file_path,
                 display_keyframe=True
+            
             )
 
             result.append(item)

@@ -15,7 +15,34 @@ services:
       - source: qdrant_config
         target: /qdrant/config/production.yaml
     volumes:
-      - /Volumes/T7/AIC/data/qdrant:/qdrant/storage
+      # - /Volumes/T7/AIC/data/qdrant:/qdrant/storage
+      # - /Users/vothanhhoanganh/Programming/Volumes/data:/qdrant/storage
+      - /Users/vothanhhoanganh/Programming/aic-pd/data:/qdrant/storage
+
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"  # Elasticsearch HTTP port
+      - "9300:9300"  # Elasticsearch transport port
+    volumes:
+      - es_data:/usr/share/elasticsearch/data  # Persist Elasticsearch data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+
+volumes:
+  es_data:
+    driver: local
 
 configs:
   qdrant_config:

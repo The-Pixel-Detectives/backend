@@ -7,3 +7,5 @@ torchvision
 transformers
 einops
 timm
+thefuzz
+elasticsearch

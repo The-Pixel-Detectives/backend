@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: str
 
+    TRANSCRIPTION_DIR: str
     class Config:
         env_file = ".env"
 

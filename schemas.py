@@ -34,8 +34,10 @@ class SearchResult(BaseModel):
 class SearchRequest(BaseModel):
     image_ids: Optional[list[str]] = []  # list of uploaded image ids
     text_queries: Optional[list[str]] = []
-    top_k: int = 10
-
+    top_k: int = 20
+    use_keyword_search: bool = False
+    fuzzy: bool = False
+    vietnamese_query: Optional[str]
 
 class TranslationRequest(BaseModel):
     query: str
