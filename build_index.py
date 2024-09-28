@@ -29,6 +29,7 @@ keyframe_dir = "/Volumes/T7/AIC/data/keyframes/"
 # input_dir = "../data/sbir_embeddings/"
 # frame_map_dir = "../data/map-keyframes/"
 
+
 client = QdrantClient(host="localhost", port=6333)
 
 if not client.collection_exists(collection_name):

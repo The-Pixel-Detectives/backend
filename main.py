@@ -16,6 +16,7 @@ from uuid import uuid4
 from services.export_csv import generate_frame_indices, export_to_csv
 from schemas import SearchRequest
 from fastapi.exceptions import HTTPException
+from transcriptions.search_transcriptions import keyword_search, fuzzy_search
 
 if os.name == 'posix':  # macOS or Linux
     os.system("alias vlc='/Applications/VLC.app/Contents/MacOS/VLC'")
@@ -31,7 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 client = QdrantClient(host="localhost", port=6333)
 search_engine = SearchEngine(client)
@@ -183,6 +183,7 @@ async def export_csv(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/open-video")
 async def open_video(request: OpenVideoRequest):
     '''
@@ -195,6 +196,16 @@ async def open_video(request: OpenVideoRequest):
     t = threading.Thread(target=vlc_open, args=(video_path, request.start_time))
     t.daemon = True
     t.start()
+
+
+@app.get("/search-transcriptions")
+async def search_transcriptions_api(keyword: str, use_fuzzy: bool = False, fuzziness: str = "AUTO"):
+    if use_fuzzy:
+        result = fuzzy_search(keyword, fuzziness)
+    else:
+        result = keyword_search(keyword)
+    
+    return {"keyword": keyword, "files": result}
 
 
 if __name__ == "__main__":
