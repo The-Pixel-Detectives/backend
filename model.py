@@ -116,4 +116,42 @@ class SBIRModel:
         return sk.cpu().detach().numpy()
 
 
+class SigLIP_MCIP:
+    def __init__(self):
+        import open_clip
+
+        model, _, preprocess = open_clip.create_model_and_transforms("ViT-SO400M-14-SigLIP-384", pretrained="webli")
+
+        checkpoint_path = '/path/to/checkpoint.pth'
+        mcip_state_dict = torch.load(checkpoint_path)
+        model.load_state_dict(mcip_state_dict, strict=True)
+        self.model = model
+        self.preprocess = preprocess
+        self.tokenizer = open_clip.get_tokenizer('ViT-SO400M-14-SigLIP-384')
+
+    # Function to extract embeddings from an image
+    def extract_embedding(self, image):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(image)
+        with torch.no_grad():
+            visual_output = self.model.encode_image(self.preprocess(image).unsqueeze(0))
+
+        # Normalizing the embeddings
+        visual_output /= visual_output.norm(dim=-1, keepdim=True)
+        visual_output = visual_output.squeeze()
+        return visual_output.detach().cpu().numpy()
+
+    def extract_text_embedding(self, text):
+        text = self.tokenizer([text])
+
+        with torch.no_grad():
+            outputs = self.model.encode_text(text)
+            outputs /= outputs.norm(dim=-1, keepdim=True)
+            outputs = outputs.squeeze()
+
+        return outputs.detach().cpu().numpy()
+
+
+
+
 jina_model = JinaCLIP()

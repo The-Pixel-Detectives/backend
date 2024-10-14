@@ -5,7 +5,7 @@ es = Elasticsearch([{'host': 'localhost', 'port': 9200, 'scheme': 'http'}])
 
 index_name = 'transcriptions'  # The index we will use in Elasticsearch
 
-def index_transcription(filename: str, content: str, video_id: str, group_id: str, frame_idx: str):
+def index_transcription(filename: str, content: str, video_id: str, group_id: str, frame_idx: str, fps: int):
     """
     Index a transcription into Elasticsearch with additional metadata.
     :param filename: The name of the transcription file.
@@ -13,10 +13,8 @@ def index_transcription(filename: str, content: str, video_id: str, group_id: st
     :param video_id: The video ID associated with this transcription.
     :param group_id: The group ID associated with this transcription.
     """
-    frame_idx = filename.split(".")[0]
-
     # Log the document being indexed
-    print(f"Indexing file: {filename}, video_id: {video_id}, group_id: {group_id}")
+    # print(f"Indexing file: {filename}, video_id: {video_id}, group_id: {group_id}")
 
     # Indexing the transcription into Elasticsearch with metadata
     response = es.index(index=index_name, body={
@@ -24,11 +22,12 @@ def index_transcription(filename: str, content: str, video_id: str, group_id: st
         'content': content,
         'video_id': video_id,
         'group_id': group_id,
-        'frame_idx': frame_idx
+        'frame_idx': int(frame_idx),
+        'fps': fps,
     })
-    
+
     # Log Elasticsearch response
-    print(f"Elasticsearch response: {response}")
+    # print(f"Elasticsearch response: {response}")
 
 def keyword_search(keyword: str):
     """

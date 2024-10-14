@@ -2,6 +2,12 @@ import csv
 import os
 import cv2
 from config import settings
+import json
+
+
+with open("./fps_map.json", "r") as f:
+    fps_map = json.load(f)
+
 
 # Function to get the FPS of a video
 def get_video_fps(video_path):
@@ -11,8 +17,8 @@ def get_video_fps(video_path):
     return fps
 
 # Function to calculate frame indices based on start and end times
-def generate_frame_indices(video_path, start_time, end_time):
-    fps = get_video_fps(video_path)
+def generate_frame_indices(video_id, start_time, end_time):
+    fps = fps_map[video_id]
     indices = [t for t in range(int(start_time * fps), int(end_time * fps), 5)]
 
     # Reorder the indices to middle → left → right

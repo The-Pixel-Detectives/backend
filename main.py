@@ -164,15 +164,11 @@ async def export_csv(
     video_id: str, start_time: float, first_frame_end_time: float, end_time: float, filename: str, qa: str
 ):
     try:
-        group_id = video_id.split("_")[0]
-        video_path = get_video_path(group_id, video_id)
-        print("video_path", video_path)
-
         # Generate frame index for the first frame (from start_time to first_frame_end_time then get the middle)
-        first_frame_indices = generate_frame_indices(video_path, start_time, first_frame_end_time)
+        first_frame_indices = generate_frame_indices(video_id, start_time, first_frame_end_time)
         middle_first_frame_index = first_frame_indices[:min(len(first_frame_indices), 10)] # middle frame index of the first range
 
-        frame_indices = generate_frame_indices(video_path, start_time, end_time) # remaining 99 frames
+        frame_indices = generate_frame_indices(video_id, start_time, end_time) # remaining 99 frames
         frame_indices = middle_first_frame_index + frame_indices[:99-len(middle_first_frame_index)]  # concat
 
         filepath = export_to_csv(video_id, frame_indices, filename, qa)
@@ -191,8 +187,8 @@ async def open_video(request: OpenVideoRequest):
     '''
     print(request)
     video_id = request.video_id
-    group_id = video_id.split("_")[0]
-    video_path = get_video_path(group_id, request.video_id)
+    group_id = request.group_id
+    video_path = get_video_path(group_id, video_id)
     t = threading.Thread(target=vlc_open, args=(video_path, request.start_time))
     t.daemon = True
     t.start()
@@ -204,7 +200,7 @@ async def search_transcriptions_api(keyword: str, use_fuzzy: bool = False, fuzzi
         result = fuzzy_search(keyword, fuzziness)
     else:
         result = keyword_search(keyword)
-    
+
     return {"keyword": keyword, "files": result}
 
 

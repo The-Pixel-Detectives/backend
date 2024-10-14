@@ -23,9 +23,9 @@ elif collection_name == SBIR_INDEX:
     vector_dimension = 768
 
 # input_dir = "./data/clip4clip_embeddings/"
-input_dir = "/Volumes/T7/AIC/data/embeddings/"
-video_root_dir = "/Volumes/T7/AIC/data/videos/"
-keyframe_dir = "/Volumes/T7/AIC/data/keyframes/"
+input_dir = "/Volumes/CSZoneT7/AIC/data/embeddings/"
+video_root_dir = "/Volumes/CSZoneT7/AIC/data/videos/"
+keyframe_dir = "/Volumes/CSZoneT7/AIC/data/keyframes/"
 # input_dir = "../data/sbir_embeddings/"
 # frame_map_dir = "../data/map-keyframes/"
 
@@ -49,8 +49,9 @@ if not client.collection_exists(collection_name):
         )
 
 group_list = os.listdir(input_dir)
+# group_list = [f for f in group_list if len(f.split("_")) == 3 and f[0] != "."]
 group_list.sort()
-group_list = group_list[14:]
+print(group_list)
 batch_size = 200
 for group in tqdm(group_list):
     group_dir = os.path.join(input_dir, group)
@@ -92,7 +93,7 @@ for group in tqdm(group_list):
                 id=str(uuid4()),
                 vector=embedding.tolist(),
                 payload={
-                    "group": group.split("_")[-1],
+                    "group": "_".join(group.split("_")[1:]),
                     "video": video,
                     "keyframe": keyframe,
                     "frame_idx": frame_idx,

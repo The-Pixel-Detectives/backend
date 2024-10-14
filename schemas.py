@@ -50,4 +50,5 @@ class TranslationRespone(BaseModel):
 
 class OpenVideoRequest(BaseModel):
     video_id: str
+    group_id: str
     start_time: float  # seconds
