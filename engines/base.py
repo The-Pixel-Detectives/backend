@@ -18,12 +18,14 @@ class BaseEngine:
 
     def search_single(self, query: str, top_k: int = 10) -> List[ImageResult]:
         query_vector = self.extract_embedding(query)
+        if type(query) is list:
+            query = query[0]
 
         # vector search
         hits = self.client.search(
            collection_name=self.collection_name,
            query_vector=query_vector,
-           limit=top_k
+           limit=top_k,
         )
 
         # extract metadata from result

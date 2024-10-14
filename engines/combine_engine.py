@@ -6,6 +6,8 @@ from .text_engine import TextEngine
 from schemas import SearchRequest, VideoResult, ImageResult
 from .keyword_engine import KeywordEngine
 from elasticsearch import Elasticsearch
+from services.openai_service import OpenAIService
+
 
 class SearchEngine:
     def __init__(self, client):
@@ -18,13 +20,13 @@ class SearchEngine:
         self.weights = {
             "text": 0.9,
             "image": 0.1,
-            "keyword": 0.8 
+            "keyword": 0.8
         }
         self.text_keep_threshold = 0.11
         self.image_keep_threshold = 0.45
         self.frame_index_purnish_w = 1.0
         self.search_top_k_factor = 40
-        self.keyword_keep_threshold = 0.5 
+        self.keyword_keep_threshold = 0.5
 
     def search(self, item: SearchRequest) -> SearchResult:
         top_k = item.top_k
@@ -36,6 +38,10 @@ class SearchEngine:
         # search image by text
         text_results = []
         for query in text_queries:
+            # print("Original", query)
+            # variations = OpenAIService.create_variations(query, num_variations=3).variations
+            # query = [query] + variations
+            # print("Variations", variations)
             text_results += self.text_engine.search(
                 queries=[query],
                 top_k=top_k * self.search_top_k_factor
@@ -79,7 +85,7 @@ class SearchEngine:
                     image_dict[id] = item
                 else:
                     image_dict[id].score += item.score
-        
+
 
         video_dict = {}
         for item in image_dict.values():
@@ -87,7 +93,7 @@ class SearchEngine:
             if id not in video_dict:
                 video_dict[id] = [item]
             else:
-                video_dict[id].append(item)            
+                video_dict[id].append(item)
 
         if is_multiple_search:
             return self.handle_multple_text_queries(video_dict, text_queries, top_k=top_k)
@@ -116,7 +122,7 @@ class SearchEngine:
                 score=max(scores),
                 local_file_path=first_item.local_file_path,
                 display_keyframe=True
-            
+
             )
 
             result.append(item)
@@ -139,7 +145,7 @@ class SearchEngine:
 
             video.sort(key=lambda x: x.frame_index)
             fps = video[0].fps
-            window_len = fps * 30
+            window_len = fps * 60
             # split into chunks of 30s
             chunk = []
             for item in video:

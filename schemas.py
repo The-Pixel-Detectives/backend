@@ -48,6 +48,10 @@ class TranslationRespone(BaseModel):
     sentences: list[str]
 
 
+class VariationResponse(BaseModel):
+    variations: list[str]
+
+
 class OpenVideoRequest(BaseModel):
     video_id: str
     group_id: str

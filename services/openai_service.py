@@ -1,6 +1,6 @@
 from openai import OpenAI
 from config import settings
-from schemas import TranslationRespone
+from schemas import TranslationRespone, VariationResponse
 
 
 translation_prompt = '''
@@ -42,6 +42,26 @@ Input: {query}
 Number of frames: {num_frames}
 '''
 
+
+variation_system_prompt = """
+Your task is to generate well-formed, effective text queries to be used as input for a semantic search engine. The goal is to create queries that are clear, specific, and yield the most relevant results. To achieve this, follow these guidelines:
+- Clarity: Use precise language and full sentences. Avoid ambiguity and vague terms.
+- Context: Add relevant details like timeframes, locations, or entities to narrow the search.
+- Natural Language: Frame queries conversationally, avoiding keyword lists.
+- Synonyms: Include synonyms or related terms to expand results if necessary.
+- Exclusions: Use negation (e.g., "without," "not") to exclude irrelevant topics.
+- Intent: Capture the purpose of the query. Be clear on the desired outcome.
+- Brief: The query must be short and concise, the search engine does not work well on long query
+
+Generate queries that maximize relevance based on these principles.
+"""
+
+variation_prompt = """
+Create {num_variations} variations of the below query to use for semantic search.
+Original query: {query}
+Now, give a list of {num_variations} query variations in a list of string. The variations must be short and concise.
+"""
+
 class _OpenAIService:
     def __init__(self):
         self.client = OpenAI(
@@ -78,5 +98,22 @@ class _OpenAIService:
 
         return completion.choices[0].message.parsed
 
+    def create_variations(self, text: str, num_variations: int = 3):
+        '''
+        text: original query in Vietnamese
+        '''
+        completion = self.client.beta.chat.completions.parse(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": variation_system_prompt},
+                {"role": "user", "content": variation_prompt.format(
+                    query=text,
+                    num_variations=num_variations
+                )}
+            ],
+            response_format=VariationResponse,
+        )
+
+        return completion.choices[0].message.parsed
 
 OpenAIService: _OpenAIService = _OpenAIService()

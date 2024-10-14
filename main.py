@@ -33,7 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = QdrantClient(host="localhost", port=6333)
+client = QdrantClient(host="localhost", port=6333, timeout=15)
 search_engine = SearchEngine(client)
 
 def vlc_open(video_path, start_time):
