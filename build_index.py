@@ -1,7 +1,7 @@
 import os
 import cv2
 # import pandas as pd
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 import numpy as np
 from qdrant_client.models import VectorParams, Distance, PointStruct
 from tqdm import tqdm
@@ -10,9 +10,10 @@ from uuid import uuid4
 
 CLIP4CLIP_INDEX = "clip4clip_embeddings"
 JINA_INDEX = "jina_embeddings"
+SIGLIP_INDEX = "siglip_embeddings"
 SBIR_INDEX = "sbir_embeddings"
 
-collection_name = JINA_INDEX
+collection_name = SIGLIP_INDEX
 # collection_name = SBIR_INDEX
 
 if collection_name == CLIP4CLIP_INDEX:
@@ -21,16 +22,18 @@ elif collection_name == JINA_INDEX:
     vector_dimension = 768
 elif collection_name == SBIR_INDEX:
     vector_dimension = 768
+elif collection_name == SIGLIP_INDEX:
+    vector_dimension = 1152
 
 # input_dir = "./data/clip4clip_embeddings/"
-input_dir = "/Volumes/CSZoneT7/AIC/data/embeddings/"
+input_dir = "/Volumes/CSZoneT7/AIC/data/siglip_embeddings2"
 video_root_dir = "/Volumes/CSZoneT7/AIC/data/videos/"
 keyframe_dir = "/Volumes/CSZoneT7/AIC/data/keyframes/"
 # input_dir = "../data/sbir_embeddings/"
 # frame_map_dir = "../data/map-keyframes/"
 
 
-client = QdrantClient(host="localhost", port=6333)
+client = QdrantClient(host="localhost", port=6333, timeout=60)
 
 if not client.collection_exists(collection_name):
     if collection_name == SBIR_INDEX:
@@ -44,13 +47,15 @@ if not client.collection_exists(collection_name):
     else:
         client.create_collection(
             collection_name=collection_name,
-            vectors_config=VectorParams(size=vector_dimension, distance=Distance.COSINE),
-            shard_number=6
+            vectors_config=VectorParams(size=vector_dimension, distance=Distance.COSINE, on_disk=True),
+            shard_number=6,
+            hnsw_config=models.HnswConfigDiff(on_disk=True),
         )
 
 group_list = os.listdir(input_dir)
-# group_list = [f for f in group_list if len(f.split("_")) == 3 and f[0] != "."]
+group_list = [f for f in group_list if f[0] != "."]
 group_list.sort()
+group_list = group_list[3:]
 print(group_list)
 batch_size = 200
 for group in tqdm(group_list):
@@ -60,7 +65,10 @@ for group in tqdm(group_list):
 
     video_list = os.listdir(group_dir)
     video_list = [v for v in video_list if v[0] != "."]
+    video_list.sort()
     for video in video_list:
+        if video in ["L22_V001", "L22_V002", "L22_V003"]:
+            continue
         video_dir = os.path.join(group_dir, video)
         if not os.path.isdir(video_dir):
             print("Skip", video_dir)

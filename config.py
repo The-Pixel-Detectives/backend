@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Qdrant collections
     JINA_INDEX: str
+    SIGLIP_INDEX: str
     SKETCH_INDEX: str
 
     VIDEO_DIR: str

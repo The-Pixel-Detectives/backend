@@ -120,10 +120,10 @@ class SigLIP_MCIP:
     def __init__(self):
         import open_clip
 
-        model, _, preprocess = open_clip.create_model_and_transforms("ViT-SO400M-14-SigLIP-384", pretrained="webli")
+        model, _, preprocess = open_clip.create_model_and_transforms("ViT-SO400M-14-SigLIP-384")
 
-        checkpoint_path = '/path/to/checkpoint.pth'
-        mcip_state_dict = torch.load(checkpoint_path)
+        checkpoint_path = '/Volumes/CSZoneT7/AIC/data/checkpoints/MCIP-ViT-SO400M-14-SigLIP-384.pth'
+        mcip_state_dict = torch.load(checkpoint_path, map_location="cpu")
         model.load_state_dict(mcip_state_dict, strict=True)
         self.model = model
         self.preprocess = preprocess
@@ -154,4 +154,5 @@ class SigLIP_MCIP:
 
 
 
-jina_model = JinaCLIP()
+# jina_model = JinaCLIP()
+embedding_model = SigLIP_MCIP()

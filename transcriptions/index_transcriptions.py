@@ -7,19 +7,20 @@ from search_transcriptions import index_transcription
 # Base directory containing all video folders (transcription folders)
 # Updated base directory pointing to the transcriptions folder in Google Drive
 base_transcription_dir = "/Volumes/Data/AI/Challenge/data/transcriptions/"
-video_root_dir = "/Volumes/T7/AIC/data/videos/"
+video_root_dir = "/Volumes/CSZoneT7/AIC/data/videos/"
 
 def index_transcriptions():
     # Loop through each folder in the base transcription directory
     group_list = os.listdir(base_transcription_dir)
     group_list.sort()
-    group_list = ["Videos_L17"]
+    group_list = ["Videos_L24"]
+    print(group_list)
     for group in group_list:
         group_dir = os.path.join(base_transcription_dir, group)
         if not os.path.isdir(group_dir):
             continue
 
-        group_id = group.split("_")[-1]
+        group_id = "_".join(group.split("_")[1:])
         video_list = os.listdir(group_dir)
         video_list.sort()
         print(group_id)

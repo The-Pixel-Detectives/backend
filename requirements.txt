@@ -9,3 +9,5 @@ einops
 timm
 thefuzz
 elasticsearch
+openai
+pydantic-settings==2.0.3

@@ -25,7 +25,7 @@ class SearchEngine:
         self.text_keep_threshold = 0.11
         self.image_keep_threshold = 0.45
         self.frame_index_purnish_w = 1.0
-        self.search_top_k_factor = 40
+        self.search_top_k_factor = 20
         self.keyword_keep_threshold = 0.5
 
     def search(self, item: SearchRequest) -> SearchResult:
